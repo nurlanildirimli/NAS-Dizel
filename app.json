@@ -3,19 +3,23 @@
     "name": "NAS Dizel",
     "slug": "nas-dizel",
     "version": "1.0.0",
+    "scheme": "nasdizel",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
+      "bundleIdentifier": "com.nasdizel.app",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.nasdizel.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -23,7 +27,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      "expo-dev-client"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0663a5f2-d102-4a58-ad3e-0f59ea06453a"
+      }
+    }
   }
 }

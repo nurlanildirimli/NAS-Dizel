@@ -5,6 +5,7 @@ const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 const fallbackSupabaseUrl = 'https://placeholder.supabase.co';
 const fallbackSupabaseAnonKey = 'placeholder-anon-key';
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase environment variables are not configured.');

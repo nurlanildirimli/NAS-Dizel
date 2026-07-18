@@ -1,6 +1,5 @@
 -- ============================================================
--- Common Rail Injector Service App — Database Schema
--- Referenced from AGENTS.md. Apply migrations in this order.
+-- Common Rail Injector Service App — Initial Schema
 -- Allowed tables ONLY: vehicles, service_records, service_injectors,
 -- payments, injector_models, price_items, price_item_options,
 -- injector_model_prices, service_line_items, allowed_devices,
@@ -22,7 +21,7 @@ $$;
 
 -- 001: allowed_devices — approved-device access control.
 -- Device delete is a soft delete; keep historical device/audit context.
-create table allowed_devices (
+create table public.allowed_devices (
   id uuid primary key default gen_random_uuid(),
   device_id text not null unique,
   device_name text,
@@ -39,7 +38,7 @@ create table allowed_devices (
 
 -- 002: vehicles — the main entity. No customer_id/name, no model/year/engine/vin,
 -- no problem_description (that lives on service_records only).
-create table vehicles (
+create table public.vehicles (
   id uuid primary key default gen_random_uuid(),
 
   license_plate text not null,
@@ -58,7 +57,7 @@ create table vehicles (
 );
 
 -- 003: injector_models — company + code identifies a model (e.g. Bosch 0445110006)
-create table injector_models (
+create table public.injector_models (
   id uuid primary key default gen_random_uuid(),
 
   company text not null,
@@ -77,10 +76,10 @@ create table injector_models (
 -- phone / is_problem_customer_snapshot / problem_reason_snapshot are SNAPSHOTS
 -- of the vehicle at time of service, because the vehicle's live values may
 -- change later. Do not treat these as the source of truth for current status.
-create table service_records (
+create table public.service_records (
   id uuid primary key default gen_random_uuid(),
 
-  vehicle_id uuid not null references vehicles(id),
+  vehicle_id uuid not null references public.vehicles(id),
 
   service_date timestamptz not null default now(),
   mileage integer not null,
@@ -94,7 +93,7 @@ create table service_records (
   technical_notes text,
 
   injector_count integer not null check (injector_count between 1 and 8),
-  injector_model_id uuid references injector_models(id),
+  injector_model_id uuid references public.injector_models(id),
   injector_company text not null,
   injector_code text not null,
   injector_serial_info text,
@@ -121,11 +120,11 @@ create table service_records (
 );
 
 -- 005: service_injectors — one row per physical injector tested in a service
-create table service_injectors (
+create table public.service_injectors (
   id uuid primary key default gen_random_uuid(),
 
-  service_id uuid not null references service_records(id) on delete cascade,
-  vehicle_id uuid not null references vehicles(id),
+  service_id uuid not null references public.service_records(id) on delete cascade,
+  vehicle_id uuid not null references public.vehicles(id),
 
   injector_number integer not null,
 
@@ -142,7 +141,7 @@ create table service_injectors (
 );
 
 -- 006: price_items — names of labor / part / extra offerings (not model-specific)
-create table price_items (
+create table public.price_items (
   id uuid primary key default gen_random_uuid(),
 
   name text not null,
@@ -155,10 +154,10 @@ create table price_items (
 );
 
 -- price_item_options — variants of a part (e.g. Nozzle -> Çin/Original/İşlənmiş)
-create table price_item_options (
+create table public.price_item_options (
   id uuid primary key default gen_random_uuid(),
 
-  price_item_id uuid not null references price_items(id) on delete cascade,
+  price_item_id uuid not null references public.price_items(id) on delete cascade,
   option_name text not null,
   is_active boolean not null default true,
   sort_order integer not null default 0,
@@ -168,12 +167,12 @@ create table price_item_options (
 );
 
 -- injector_model_prices — default price of a given item/option for a given model
-create table injector_model_prices (
+create table public.injector_model_prices (
   id uuid primary key default gen_random_uuid(),
 
-  injector_model_id uuid not null references injector_models(id) on delete cascade,
-  price_item_id uuid not null references price_items(id) on delete cascade,
-  price_item_option_id uuid references price_item_options(id) on delete cascade,
+  injector_model_id uuid not null references public.injector_models(id) on delete cascade,
+  price_item_id uuid not null references public.price_items(id) on delete cascade,
+  price_item_option_id uuid references public.price_item_options(id) on delete cascade,
 
   item_type text not null check (item_type in ('labor', 'part', 'extra')),
   default_price numeric(12,2) not null default 0,
@@ -186,12 +185,12 @@ create table injector_model_prices (
 -- 007: service_line_items — every labor/part/extra actually applied in a visit.
 -- Both default_unit_price (catalog) and actual_unit_price (charged) are stored;
 -- never collapse into one field, even if they match.
-create table service_line_items (
+create table public.service_line_items (
   id uuid primary key default gen_random_uuid(),
 
-  service_id uuid not null references service_records(id) on delete cascade,
-  service_injector_id uuid references service_injectors(id),
-  injector_model_id uuid references injector_models(id),
+  service_id uuid not null references public.service_records(id) on delete cascade,
+  service_injector_id uuid references public.service_injectors(id),
+  injector_model_id uuid references public.injector_models(id),
 
   item_type text not null check (item_type in ('labor', 'part', 'extra')),
   item_name text not null,
@@ -224,11 +223,11 @@ create table service_line_items (
 );
 
 -- 008: payments
-create table payments (
+create table public.payments (
   id uuid primary key default gen_random_uuid(),
 
-  service_id uuid not null references service_records(id) on delete cascade,
-  vehicle_id uuid not null references vehicles(id),
+  service_id uuid not null references public.service_records(id) on delete cascade,
+  vehicle_id uuid not null references public.vehicles(id),
 
   payment_date timestamptz not null default now(),
 
@@ -249,7 +248,7 @@ create table payments (
 );
 
 -- 009: audit_logs
-create table audit_logs (
+create table public.audit_logs (
   id uuid primary key default gen_random_uuid(),
 
   action_type text not null,
@@ -263,7 +262,7 @@ create table audit_logs (
 );
 
 -- 010: settings — generic key/value config
-create table settings (
+create table public.settings (
   id uuid primary key default gen_random_uuid(),
 
   key text not null unique,
@@ -274,77 +273,75 @@ create table settings (
 );
 
 -- 011: indexes
-create index idx_vehicles_license_plate on vehicles(license_plate);
--- Active vehicles must be unique after plate normalization, so 90-PP-123 and
--- 90 PP 123 cannot become two separate live vehicle records.
+create index idx_vehicles_license_plate on public.vehicles(license_plate);
 create unique index idx_vehicles_normalized_plate_active
-  on vehicles ((regexp_replace(upper(license_plate), '[^A-Z0-9]', '', 'g')))
+  on public.vehicles ((regexp_replace(upper(license_plate), '[^A-Z0-9]', '', 'g')))
   where is_deleted = false;
-create index idx_vehicles_brand on vehicles(brand);
-create index idx_vehicles_phone on vehicles(phone);
-create index idx_vehicles_problem on vehicles(is_problem_customer);
+create index idx_vehicles_brand on public.vehicles(brand);
+create index idx_vehicles_phone on public.vehicles(phone);
+create index idx_vehicles_problem on public.vehicles(is_problem_customer);
 
-create index idx_service_records_vehicle_id on service_records(vehicle_id);
-create index idx_service_records_service_date on service_records(service_date);
-create index idx_service_records_payment_status on service_records(payment_status);
-create index idx_service_records_injector_company on service_records(injector_company);
-create index idx_service_records_injector_code on service_records(injector_code);
-create index idx_service_records_injector_model_id on service_records(injector_model_id);
+create index idx_service_records_vehicle_id on public.service_records(vehicle_id);
+create index idx_service_records_service_date on public.service_records(service_date);
+create index idx_service_records_payment_status on public.service_records(payment_status);
+create index idx_service_records_injector_company on public.service_records(injector_company);
+create index idx_service_records_injector_code on public.service_records(injector_code);
+create index idx_service_records_injector_model_id on public.service_records(injector_model_id);
 
-create index idx_payments_vehicle_id on payments(vehicle_id);
-create index idx_payments_payment_status on payments(payment_status);
+create index idx_payments_vehicle_id on public.payments(vehicle_id);
+create index idx_payments_payment_status on public.payments(payment_status);
 
-create index idx_injector_models_company on injector_models(company);
-create index idx_injector_models_code on injector_models(code);
+create index idx_injector_models_company on public.injector_models(company);
+create index idx_injector_models_code on public.injector_models(code);
 
-create index idx_service_line_items_service_id on service_line_items(service_id);
-create index idx_service_line_items_item_type on service_line_items(item_type);
-create index idx_service_line_items_item_name on service_line_items(item_name);
-create index idx_service_line_items_option_name on service_line_items(option_name);
-create index idx_service_line_items_apply_target on service_line_items(apply_target);
+create index idx_service_line_items_service_id on public.service_line_items(service_id);
+create index idx_service_line_items_item_type on public.service_line_items(item_type);
+create index idx_service_line_items_item_name on public.service_line_items(item_name);
+create index idx_service_line_items_option_name on public.service_line_items(option_name);
+create index idx_service_line_items_apply_target on public.service_line_items(apply_target);
 
-create index idx_allowed_devices_device_id on allowed_devices(device_id);
-create index idx_allowed_devices_status on allowed_devices(status);
-create index idx_allowed_devices_is_active on allowed_devices(is_active);
-create index idx_allowed_devices_is_deleted on allowed_devices(is_deleted);
+create index idx_allowed_devices_device_id on public.allowed_devices(device_id);
+create index idx_allowed_devices_status on public.allowed_devices(status);
+create index idx_allowed_devices_is_active on public.allowed_devices(is_active);
+create index idx_allowed_devices_is_deleted on public.allowed_devices(is_deleted);
 
 -- 012: updated_at triggers
 create trigger trg_vehicles_updated_at
-  before update on vehicles
+  before update on public.vehicles
   for each row execute function public.set_updated_at();
 
 create trigger trg_injector_models_updated_at
-  before update on injector_models
+  before update on public.injector_models
   for each row execute function public.set_updated_at();
 
 create trigger trg_service_records_updated_at
-  before update on service_records
+  before update on public.service_records
   for each row execute function public.set_updated_at();
 
 create trigger trg_service_injectors_updated_at
-  before update on service_injectors
+  before update on public.service_injectors
   for each row execute function public.set_updated_at();
 
 create trigger trg_price_items_updated_at
-  before update on price_items
+  before update on public.price_items
   for each row execute function public.set_updated_at();
 
 create trigger trg_price_item_options_updated_at
-  before update on price_item_options
+  before update on public.price_item_options
   for each row execute function public.set_updated_at();
 
 create trigger trg_injector_model_prices_updated_at
-  before update on injector_model_prices
+  before update on public.injector_model_prices
   for each row execute function public.set_updated_at();
 
 create trigger trg_service_line_items_updated_at
-  before update on service_line_items
+  before update on public.service_line_items
   for each row execute function public.set_updated_at();
 
 create trigger trg_payments_updated_at
-  before update on payments
+  before update on public.payments
   for each row execute function public.set_updated_at();
 
 create trigger trg_settings_updated_at
-  before update on settings
+  before update on public.settings
   for each row execute function public.set_updated_at();

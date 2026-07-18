@@ -72,11 +72,13 @@ There is no visible login screen or PIN. Access is gated by device approval:
 
 1. On app open, read `device_id` from SecureStore/AsyncStorage.
 2. If missing, generate a unique code and persist it.
-3. Check `allowed_devices` in Supabase for that `device_id` where
-   `is_deleted = false`.
-4. If found and `is_active = true` → open **Axtarış** (search).
-5. If not found, inactive, or soft-deleted → show the device activation /
-   deactivated screen.
+3. Check `allowed_devices` in Supabase for that `device_id`.
+4. If no row exists, create a pending row with `status = 'pending'` and
+   `is_active = false`.
+5. If `is_deleted = false`, `status = 'active'`, and `is_active = true` → open
+   **Axtarış** (search).
+6. If pending → show the device activation screen.
+7. If deactivated, inactive, or soft-deleted → show the deactivated screen.
 
 Device management lives at **Daha çox → Cihazlar**: shows device name, code,
 status, last-used, note; actions are activate, deactivate, rename, delete.
