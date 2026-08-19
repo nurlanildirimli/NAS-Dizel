@@ -113,3 +113,32 @@ export type IncomeSummary = {
   vehicleCount: number;
   injectorCount: number;
 };
+
+export type IncomeSeriesPoint = {
+  label: string;
+  amount: number;
+};
+
+export type IncomeModelAnalyticsRow = {
+  label: string;
+  serviceCount: number;
+  totalAmount: number;
+};
+
+export type IncomeCategoryTotal = {
+  itemType: 'labor' | 'part' | 'extra';
+  totalAmount: number;
+  quantity: number;
+};
+
+export type IncomeAnalytics = {
+  periodKey: IncomePeriod;
+  dailyIncome: IncomeSeriesPoint[];
+  monthlyIncome: IncomeSeriesPoint[];
+  topModels: IncomeModelAnalyticsRow[];
+  categoryTotals: IncomeCategoryTotal[];
+  discountTotal: number;
+  todayIncome: number;
+  monthIncome: number;
+  yearIncome: number;
+};

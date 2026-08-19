@@ -4,6 +4,7 @@ import {
   type InjectorDraftItem,
   type NewServiceInjectorDraft,
   type NewServiceLineItemDraft,
+  type NewServiceNoteDraft,
   type NewServicePaymentDraft,
   type NewServiceStep,
   type NewServiceVehicleDraft,
@@ -15,15 +16,26 @@ type NewServiceStore = {
   injector: NewServiceInjectorDraft;
   lineItems: NewServiceLineItemDraft[];
   payment: NewServicePaymentDraft;
+  serviceNote: NewServiceNoteDraft;
   setStep: (step: NewServiceStep) => void;
   updateVehicle: (patch: Partial<NewServiceVehicleDraft>) => void;
   updateInjector: (patch: Partial<Omit<NewServiceInjectorDraft, 'injectors'>>) => void;
   setInjectorCount: (count: number) => void;
   updateInjectorItem: (injectorNumber: number, patch: Partial<InjectorDraftItem>) => void;
+  setLineItems: (lineItems: NewServiceLineItemDraft[]) => void;
   addLineItem: (lineItem: NewServiceLineItemDraft) => void;
   removeLineItem: (id: string) => void;
   updateLineItem: (id: string, patch: Partial<NewServiceLineItemDraft>) => void;
   updatePayment: (patch: Partial<NewServicePaymentDraft>) => void;
+  updateServiceNote: (patch: Partial<NewServiceNoteDraft>) => void;
+  replaceDraft: (draft: {
+    vehicle: NewServiceVehicleDraft;
+    injector: NewServiceInjectorDraft;
+    lineItems: NewServiceLineItemDraft[];
+    payment: NewServicePaymentDraft;
+    serviceNote?: NewServiceNoteDraft;
+    currentStep?: NewServiceStep;
+  }) => void;
   selectExistingVehicle: (vehicle: Omit<NewServiceVehicleDraft, 'problemDescription'>) => void;
   startNewVehicleRecord: () => void;
   reset: () => void;
@@ -111,12 +123,31 @@ const defaultInjector: NewServiceInjectorDraft = {
 };
 
 const defaultPayment: NewServicePaymentDraft = {
-  discountedPrice: '',
   discountAmount: '0',
   paidAmount: '0',
   paymentMethod: '',
   note: '',
 };
+
+function createLocalRecordingKey() {
+  return `voice-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function createDefaultServiceNote(): NewServiceNoteDraft {
+  return {
+    draftId: null,
+    localRecordingKey: createLocalRecordingKey(),
+    rawNote: '',
+    professionalText: '',
+    warnings: [],
+    missingInfo: [],
+    detectedPriceLines: [],
+    priceTotal: '0',
+    detectedInjectorCount: null,
+    detectedInjectorCompany: '',
+    detectedInjectorCode: '',
+  };
+}
 
 export const useNewServiceStore = create<NewServiceStore>((set) => ({
   currentStep: 'vehicle',
@@ -124,6 +155,7 @@ export const useNewServiceStore = create<NewServiceStore>((set) => ({
   injector: defaultInjector,
   lineItems: [],
   payment: defaultPayment,
+  serviceNote: createDefaultServiceNote(),
   setStep: (step) => set({ currentStep: step }),
   updateVehicle: (patch) => set((state) => ({ vehicle: { ...state.vehicle, ...patch } })),
   updateInjector: (patch) => set((state) => ({ injector: { ...state.injector, ...patch } })),
@@ -143,6 +175,7 @@ export const useNewServiceStore = create<NewServiceStore>((set) => ({
       )),
     },
   })),
+  setLineItems: (lineItems) => set({ lineItems }),
   addLineItem: (lineItem) => set((state) => ({ lineItems: [...state.lineItems, lineItem] })),
   removeLineItem: (id) => set((state) => ({
     lineItems: state.lineItems.filter((lineItem) => lineItem.id !== id),
@@ -153,6 +186,15 @@ export const useNewServiceStore = create<NewServiceStore>((set) => ({
     )),
   })),
   updatePayment: (patch) => set((state) => ({ payment: { ...state.payment, ...patch } })),
+  updateServiceNote: (patch) => set((state) => ({ serviceNote: { ...state.serviceNote, ...patch } })),
+  replaceDraft: (draft) => set({
+    currentStep: draft.currentStep ?? 'confirm',
+    vehicle: draft.vehicle,
+    injector: draft.injector,
+    lineItems: draft.lineItems,
+    payment: draft.payment,
+    serviceNote: draft.serviceNote ?? createDefaultServiceNote(),
+  }),
   selectExistingVehicle: (vehicle) => set((state) => ({
     vehicle: {
       ...state.vehicle,
@@ -173,5 +215,6 @@ export const useNewServiceStore = create<NewServiceStore>((set) => ({
     injector: defaultInjector,
     lineItems: [],
     payment: defaultPayment,
+    serviceNote: createDefaultServiceNote(),
   }),
 }));

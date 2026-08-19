@@ -4,7 +4,7 @@
 -- Allowed tables ONLY: vehicles, service_records, service_injectors,
 -- payments, injector_models, price_items, price_item_options,
 -- injector_model_prices, service_line_items, allowed_devices,
--- settings, audit_logs.
+-- service_drafts, settings, audit_logs.
 -- Do NOT create: customers, users, technicians.
 -- ============================================================
 
@@ -118,6 +118,61 @@ create table service_records (
 
   is_deleted boolean not null default false,
   deleted_at timestamptz
+);
+
+-- 004b: service_drafts — unfinished text-based service notes.
+-- Drafts store text and pricing snapshots only; audio recordings remain local.
+create table service_drafts (
+  id uuid primary key default gen_random_uuid(),
+
+  selected_vehicle_id uuid references vehicles(id),
+  previous_mileage integer,
+  license_plate text not null default '',
+  brand text not null default '',
+  phone text not null default '',
+  mileage integer,
+  problem_description text,
+  is_problem_customer boolean not null default false,
+  problem_reason text,
+
+  raw_note text not null default '',
+  professional_text text,
+  ai_warnings text[] not null default '{}',
+  missing_info text[] not null default '{}',
+  price_lines jsonb not null default '[]'::jsonb,
+  price_total numeric(12,2) not null default 0,
+  discount_amount numeric(12,2) not null default 0,
+  paid_amount numeric(12,2) not null default 0,
+  payment_note text,
+  local_recording_key text,
+
+  detected_injector_count integer check (detected_injector_count is null or detected_injector_count between 1 and 8),
+  detected_injector_company text,
+  detected_injector_code text,
+
+  status text not null default 'draft' check (status in ('draft', 'ready', 'saved')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- 004c: ai_usage_logs — metadata-only AI cost/debug logs.
+-- Do not store mechanic notes, transcripts, professional text, audio, phone, or plate.
+create table ai_usage_logs (
+  id uuid primary key default gen_random_uuid(),
+
+  feature text not null check (feature in ('professional_note', 'transcription')),
+  function_name text not null,
+  model text not null,
+  status text not null check (status in ('success', 'error')),
+
+  input_tokens integer,
+  output_tokens integer,
+  audio_seconds numeric(10,2),
+  estimated_cost_usd numeric(12,6) not null default 0,
+  retry_count integer not null default 0,
+  error_summary text,
+
+  created_at timestamptz not null default now()
 );
 
 -- 005: service_injectors — one row per physical injector tested in a service
@@ -291,6 +346,8 @@ create index idx_service_records_injector_company on service_records(injector_co
 create index idx_service_records_injector_code on service_records(injector_code);
 create index idx_service_records_injector_model_id on service_records(injector_model_id);
 
+create index idx_service_drafts_status_updated_at on service_drafts(status, updated_at desc);
+
 create index idx_payments_vehicle_id on payments(vehicle_id);
 create index idx_payments_payment_status on payments(payment_status);
 
@@ -321,6 +378,10 @@ create trigger trg_service_records_updated_at
   before update on service_records
   for each row execute function public.set_updated_at();
 
+create trigger trg_service_drafts_updated_at
+  before update on service_drafts
+  for each row execute function public.set_updated_at();
+
 create trigger trg_service_injectors_updated_at
   before update on service_injectors
   for each row execute function public.set_updated_at();
@@ -348,3 +409,13 @@ create trigger trg_payments_updated_at
 create trigger trg_settings_updated_at
   before update on settings
   for each row execute function public.set_updated_at();
+
+-- Analytics RPCs
+-- get_income_summary(period_key text) returns top-level paid/debt/service counts.
+-- get_income_analytics(period_key text default 'month') returns daily income,
+-- monthly income, top injector models, line-item category totals, discounts, and
+-- current today/month/year paid income. Values exclude soft-deleted services and
+-- payments and use service_line_items for operation-level analytics.
+-- get_report_summary(report_key text, period_key text default 'month') powers
+-- Hesabatlar; injector/model, parts/services, and price-change reports use
+-- detailed service_line_items where operation-level data is needed.

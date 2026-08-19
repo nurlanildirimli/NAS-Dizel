@@ -5,6 +5,7 @@ export const injectorCompanySchema = z.enum([
   'Delphi',
   'Denso',
   'Siemens',
+  'Unknown',
 ]);
 
 const requiredString = z.string().trim().min(1, 'Bu sahə mütləqdir');

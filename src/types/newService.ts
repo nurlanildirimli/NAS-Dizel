@@ -2,7 +2,8 @@ export type InjectorCompany =
   | 'Bosch'
   | 'Delphi'
   | 'Denso'
-  | 'Siemens';
+  | 'Siemens'
+  | 'Unknown';
 
 export type NewServiceVehicleDraft = {
   selectedVehicleId: string | null;
@@ -66,11 +67,33 @@ export type NewServiceLineItemDraft = {
 };
 
 export type NewServicePaymentDraft = {
-  discountedPrice: string;
   discountAmount: string;
   paidAmount: string;
   paymentMethod: NewServicePaymentMethod;
   note: string;
+};
+
+export type ServicePriceLineDraft = {
+  name: string;
+  amount: number;
+  source?: 'spoken' | 'catalog' | 'unmatched';
+  scope?: string;
+  sourceText?: string;
+  lineItem?: NewServiceLineItemDraft;
+};
+
+export type NewServiceNoteDraft = {
+  draftId: string | null;
+  localRecordingKey: string;
+  rawNote: string;
+  professionalText: string;
+  warnings: string[];
+  missingInfo: string[];
+  detectedPriceLines: ServicePriceLineDraft[];
+  priceTotal: string;
+  detectedInjectorCount: number | null;
+  detectedInjectorCompany: InjectorCompany | '';
+  detectedInjectorCode: string;
 };
 
 export type NewServiceTotals = {
@@ -85,4 +108,4 @@ export type NewServiceTotals = {
   paymentStatus: 'paid' | 'partially_paid' | 'unpaid';
 };
 
-export type NewServiceStep = 'vehicle' | 'injectors' | 'confirm';
+export type NewServiceStep = 'vehicle' | 'notes' | 'confirm';

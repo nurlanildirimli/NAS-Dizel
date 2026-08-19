@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { FileText, MoreHorizontal, Smartphone, Wallet, Wrench } from 'lucide-react-native';
+import { Bot, FileText, MoreHorizontal, Smartphone, Wallet, Wrench } from 'lucide-react-native';
 
 import { Header, PagePanel, Screen } from '../../src/components/layout';
 import { Button, Card } from '../../src/components/ui';
@@ -46,6 +46,15 @@ export default function MoreScreen() {
               variant="secondary"
               icon={Smartphone}
               onPress={() => router.push('/devices')}
+            />
+          </Card>
+          <Card>
+            <Text style={styles.title}>AI istifadəsi</Text>
+            <Button
+              title="Detallar"
+              variant="secondary"
+              icon={Bot}
+              onPress={() => router.push('/ai-usage')}
             />
           </Card>
         </View>

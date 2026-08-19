@@ -13,7 +13,7 @@ All UI Design Images are in the `docs/ui-designs/` take them as the strongest re
 ## Bottom Navigation
 
 ```
-Axtarış | Yeni | Gəlir | Avtomobillər | Daha çox
+Axtarış | Yeni | Gəlir | Avtomobillər | Yaddaş | Daha çox
 ```
 App opens to **Axtarış** after device approval.
 
@@ -25,7 +25,9 @@ Mövcud avtomobili seç   Yeni qeyd yarat      Növbəti
 Təsdiqlə və saxla       Redaktə et           Sil
 Zəng et                 Tarixçə              Detallar
 Yenidən yoxla           Aktiv et             Deaktiv et
-Baştan başla
+Baştan başla            Səliqəli və peşəkar formada yaz
+Təsdiqə keç             Davam et
+AI istifadəsi
 ```
 
 ## Status Labels
@@ -122,24 +124,35 @@ Bu avtomobil bazada yoxdur.
 Yeni avtomobil kimi əlavə edin.
 ```
 
-## Injectorlar (Step 2)
+## Qeydlər (Step 2)
 
-General fields: Injector sayı, Injector şirkəti, Injector kodu.
-Note shown: *"Bu məlumat bütün injectorlara tətbiq olunur."*
+```
+Səs qeydləri
+Səs yaz
+Dayandır 0:12
+Dinlə
+Sil
+Mikrofon icazəsi verilməyib.
+Səs yazısı saxlanmadı.
+Səs qeydi mətnə çevrilmədi. Yenidən yoxlayın.
+İnternet bağlantısı yoxlanıla bilmədi.
+AI xidməti hazırda çox yüklənib. Bir az sonra yenidən yoxlayın.
+AI funksiyası tapılmadı. Supabase funksiyalarını yenidən deploy edin.
+AI cavabı düzgün formatda gəlmədi. Yenidən yoxlayın.
+OpenAI açarı Supabase-də düzgün qurulmayıb.
+AI əməliyyatı tamamlanmadı. Yenidən yoxlayın.
 
-Injector count buttons: `1 2 3 4 5 6 7 8` — default selected: **4**.
+Servis qeydi *
+[ Forsunkalar söküldü, stenddə yoxlanıldı... ]
 
-Injector company options: `Bosch, Delphi, Denso, Siemens`
+[ Yadda saxla ] [ Səliqəli və peşəkar formada yaz ]
 
-Per-injector fields: Problem, Detal, Qeyd.
+Mətni təsdiqlə
+Səs qeydlərindən alınan mətni yoxlayın. Lazımdırsa düzəliş edin.
 
-**Problem (multi-select):** Geri axın çoxdur · Geri axın az · Sızma var ·
-İynə problemi · Qapaq problemi · Elektrik problemi · Kodlama problemi ·
-Çirklənmə · Mexaniki zədə · Problem yoxdur · Digər
-
-**Detal checklist:** catalog labor and part rows with visible price and `Dəyiş`
-price override action. `Əlavə et` creates a custom detail with name and price for
-the active injector.
+Hazırlanmış mətn
+[ Təsdiqə keç ]
+```
 
 ## Model Match Feedback (in İnyektorlar / price catalog flow)
 
@@ -152,7 +165,7 @@ Bu model kataloqda yoxdur.
 [ Model kimi əlavə et ]  [ Manual qiymətlə davam et ]
 ```
 
-## Təsdiq (Step 3) — full example
+## Təsdiq (Step 3) — text-service flow
 
 ```
 Təsdiq
@@ -160,28 +173,66 @@ Təsdiq
 Avtomobil: 90-PP-123 — Toyota
 Telefon: 050 123 45 67
 Yürüş: 214,000 km
-Problem təsviri: Soyuqda gec işə düşür
-Injector: 4 ədəd — Bosch 0445110006
+
+Servis mətni
+Avtomobilin forsunkaları sökülərək stenddə yoxlanıldı...
+
+Mexanik qeydi
+Forsunkalar söküldü...
+
+AI qeydləri
+Injector markası qeyd edilməyib.
+
+Çatışmayan məlumatlar
+Məlumat əlavə et
+Əlavə məlumat
+Bu məlumat servis qeydinə əlavə olunacaq və mətn yenidən hazırlanacaq.
+
+AI qiymət detalları
+Qiymət tapılmadı.
+
+Qiymət [ 110 ]
+Endirim [ 0 ]
+Ödənilən [ 0 ]
+Qeyd [ Ödəniş qeydi ]
+
 Problemli müştəri [ toggle ]
 Problem səbəbi [ Ödənişi gecikdirib ]
 
-Görülən işlər:
-  Sökülmə — Bütün inyektorlara — 4 × 10 AZN = 40 AZN
-  İynə — Çin iynə — Injector — 1 × 35 AZN = 35 AZN
+[ Yadda saxla ] [ Təsdiqlə və saxla ]
+```
 
-Qiymət:
-  Görülən işlər: 90 AZN
-  Hissələr: 140 AZN
-  Endirim: 20 AZN
-  Yekun: 210 AZN
+## Yadda saxlanılanlar
 
-Ödəniş:
-  Endirimli qiymət: 210 AZN
-  Ödənilən: 100 AZN
-  Qalan: 110 AZN
-  Status: Qismən ödənilib
+```
+Yadda saxlanılanlar
 
-[ Təsdiqlə və saxla ]
+Nömrəsiz / 90-PP-123 — Toyota
+Yenilənib: 12.05.2024
+Qaralama / Hazır
+[ Davam et ] [ Sil ]
+```
+
+## AI istifadəsi
+
+```
+AI istifadəsi
+
+Bu gün
+Bu ay
+Hamısı
+
+Hamısı | Servis mətni | Səsdən mətnə | Xətalar
+
+Uğurlu
+Xəta
+Token
+Səs
+Cəhd
+Xərc
+Nəticə tapılmadı
+Məlumat yüklənmədi
+Yenidən yoxla
 ```
 
 ## Axtarış (Search) Screen

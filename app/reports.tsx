@@ -61,7 +61,7 @@ export default function ReportsScreen() {
     onSuccess: (rows) => {
       if (Platform.OS === 'web') {
         if (exportFormat === 'excel') {
-          downloadExcel(toExcelFile(rows, activeDataset?.label ?? datasetKey), `${datasetKey}.xlsx`);
+          downloadExcel(toExcelFile(rows, activeDataset?.label ?? datasetKey), `${datasetKey}.xls`);
         } else {
           downloadCsv(toCsv(rows), `${datasetKey}.csv`);
         }
@@ -222,7 +222,7 @@ function downloadCsv(csv: string, filename: string) {
 
 function downloadExcel(workbook: ArrayBuffer, filename: string) {
   const blob = new Blob([workbook], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    type: 'application/vnd.ms-excel;charset=utf-8;',
   });
   downloadBlob(blob, filename);
 }

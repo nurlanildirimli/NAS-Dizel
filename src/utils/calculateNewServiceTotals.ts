@@ -31,12 +31,8 @@ export function calculateNewServiceTotals(
     },
   );
   const calculatedTotal = totals.laborTotal + totals.partsTotal + totals.extraTotal;
-  const hasDiscountedPrice = payment.discountedPrice.trim().length > 0;
-  const discountedPrice = Math.max(0, toMoneyNumber(payment.discountedPrice));
-  const finalTotal = hasDiscountedPrice
-    ? Math.min(calculatedTotal, discountedPrice)
-    : calculatedTotal;
-  const discountAmount = Math.max(0, calculatedTotal - finalTotal);
+  const discountAmount = Math.min(calculatedTotal, Math.max(0, toMoneyNumber(payment.discountAmount)));
+  const finalTotal = Math.max(0, calculatedTotal - discountAmount);
   const paidAmount = Math.max(0, toMoneyNumber(payment.paidAmount));
   const remainingAmount = Math.max(0, finalTotal - paidAmount);
   const paymentStatus = paidAmount >= finalTotal && finalTotal > 0

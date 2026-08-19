@@ -28,7 +28,16 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-dev-client"
+      "expo-dev-client",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "NAS Dizel səs qeydlərini mətnə çevirmək üçün mikrofon icazəsi istəyir.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-status-bar"
     ],
     "extra": {
       "router": {},

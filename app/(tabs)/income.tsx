@@ -14,19 +14,10 @@ import { type LucideIcon } from 'lucide-react-native';
 
 import { Header, PagePanel, Screen } from '../../src/components/layout';
 import { Button, Card, Modal } from '../../src/components/ui';
-import { getIncomeSummary } from '../../src/services/services';
+import { getIncomeAnalytics, getIncomeSummary } from '../../src/services/services';
 import { colors, radii, spacing } from '../../src/theme';
+import { type IncomeAnalytics } from '../../src/types/services';
 import { formatMoney } from '../../src/utils/formatMoney';
-
-const monthlyLine = [8, 34, 22, 18, 16, 24, 62, 36, 48, 62, 50, 46, 54, 68, 84, 62, 46, 58, 76, 86];
-const yearlyBars = [42, 52, 68, 72, 94, 92, 88, 70, 78, 90, 86, 100];
-const modelRows = [
-  { label: 'Bosch 0445110006', value: '0 AZN', width: '100%' },
-  { label: 'Delphi EJBR03101D', value: '0 AZN', width: '78%' },
-  { label: 'Denso 095000-6590', value: '0 AZN', width: '58%' },
-  { label: 'Siemens A2C59511612', value: '0 AZN', width: '46%' },
-  { label: 'Bosch 0445110376', value: '0 AZN', width: '34%' },
-] as const;
 
 type ExpandedIncomePanel = 'monthly' | 'yearly' | 'models' | null;
 
@@ -44,12 +35,22 @@ export default function IncomeScreen() {
     queryKey: ['income', 'year'],
     queryFn: () => getIncomeSummary('year'),
   });
+  const analyticsQuery = useQuery({
+    queryKey: ['income-analytics', 'month'],
+    queryFn: () => getIncomeAnalytics('month'),
+  });
   const todaySummary = todayQuery.data;
   const monthSummary = monthQuery.data;
   const yearSummary = yearQuery.data;
+  const analytics = analyticsQuery.data;
+  const modelRows = buildModelRows(analytics);
+  const laborTotal = getCategoryTotal(analytics, 'labor');
+  const partsTotal = getCategoryTotal(analytics, 'part');
+  const dailyChartValues = normalizeChartValues(analytics?.dailyIncome.map((point) => point.amount) ?? []);
+  const yearlyChartValues = normalizeChartValues(analytics?.monthlyIncome.map((point) => point.amount) ?? []);
   const displaySummary = monthSummary ?? todaySummary ?? yearSummary;
-  const isLoading = todayQuery.isLoading || monthQuery.isLoading || yearQuery.isLoading;
-  const isError = todayQuery.isError || monthQuery.isError || yearQuery.isError;
+  const isLoading = todayQuery.isLoading || monthQuery.isLoading || yearQuery.isLoading || analyticsQuery.isLoading;
+  const isError = todayQuery.isError || monthQuery.isError || yearQuery.isError || analyticsQuery.isError;
 
   return (
     <Screen noBottomPadding backgroundColor={colors.surface}>
@@ -71,6 +72,7 @@ export default function IncomeScreen() {
                   todayQuery.refetch();
                   monthQuery.refetch();
                   yearQuery.refetch();
+                  analyticsQuery.refetch();
                 }}
               />
             </View>
@@ -85,8 +87,8 @@ export default function IncomeScreen() {
                 iconColor={colors.success}
                 iconBackground={colors.successSoft}
                 label="Bu gün gəlir"
-                value={formatMoney(todaySummary?.incomeTotal ?? 0)}
-                trend="↗ 12%"
+                value={formatMoney(analytics?.todayIncome ?? todaySummary?.incomeTotal ?? 0)}
+                trend=""
                 trendColor={colors.success}
               />
               <IncomeMetricCard
@@ -94,8 +96,8 @@ export default function IncomeScreen() {
                 iconColor={colors.primary}
                 iconBackground={colors.primarySoft}
                 label="Bu ay gəlir"
-                value={formatMoney(monthSummary?.incomeTotal ?? 0)}
-                trend="↗ 18%"
+                value={formatMoney(analytics?.monthIncome ?? monthSummary?.incomeTotal ?? 0)}
+                trend=""
                 trendColor={colors.success}
               />
               <IncomeMetricCard
@@ -103,8 +105,8 @@ export default function IncomeScreen() {
                 iconColor={colors.purple}
                 iconBackground={colors.purpleSoft}
                 label="Bu il gəlir"
-                value={formatMoney(yearSummary?.incomeTotal ?? 0)}
-                trend="↗ 22%"
+                value={formatMoney(analytics?.yearIncome ?? yearSummary?.incomeTotal ?? 0)}
+                trend=""
                 trendColor={colors.success}
               />
               <IncomeMetricCard
@@ -122,7 +124,7 @@ export default function IncomeScreen() {
                 iconBackground={colors.primarySoft}
                 label="Bu ay xidmət sayı"
                 value={String(monthSummary?.serviceCount ?? 0)}
-                trend="↗ 15%"
+                trend=""
                 trendColor={colors.success}
               />
               <IncomeMetricCard
@@ -131,7 +133,7 @@ export default function IncomeScreen() {
                 iconBackground={colors.purpleSoft}
                 label="Bu ay avtomobil sayı"
                 value={String(monthSummary?.vehicleCount ?? 0)}
-                trend="↗ 12%"
+                trend=""
                 trendColor={colors.success}
               />
               <IncomeMetricCard
@@ -141,7 +143,7 @@ export default function IncomeScreen() {
                 iconBackground={colors.primarySoft}
                 label="Bu ay injector sayı"
                 value={String(monthSummary?.injectorCount ?? 0)}
-                trend="↗ 16%"
+                trend=""
                 trendColor={colors.success}
               />
             </View>
@@ -149,19 +151,19 @@ export default function IncomeScreen() {
             <View style={styles.chartGrid}>
               <ChartCard
                 title="Aylıq gəlir"
-                value={formatMoney(monthSummary?.incomeTotal ?? 0)}
+                value={formatMoney(analytics?.monthIncome ?? monthSummary?.incomeTotal ?? 0)}
                 subtitle="Bu ay üzrə gündəlik gəlir (AZN)"
                 onPress={() => setExpandedPanel('monthly')}
               >
-                <LineChartPreview />
+                <LineChartPreview values={dailyChartValues} />
               </ChartCard>
               <ChartCard
                 title="İllik gəlir"
-                value={formatMoney(yearSummary?.incomeTotal ?? 0)}
+                value={formatMoney(analytics?.yearIncome ?? yearSummary?.incomeTotal ?? 0)}
                 subtitle="Son 12 ay (AZN)"
                 onPress={() => setExpandedPanel('yearly')}
               >
-                <BarChartPreview />
+                <BarChartPreview values={yearlyChartValues} />
               </ChartCard>
             </View>
 
@@ -178,7 +180,7 @@ export default function IncomeScreen() {
                 </View>
               </View>
               <View style={styles.modelsList}>
-                {modelRows.map((row, index) => (
+                {modelRows.length > 0 ? modelRows.map((row, index) => (
                   <View key={row.label} style={styles.modelRow}>
                     <View style={styles.modelLine}>
                       <Text numberOfLines={1} style={styles.modelName}>
@@ -190,7 +192,7 @@ export default function IncomeScreen() {
                       <View style={[styles.progressFill, { width: row.width }]} />
                     </View>
                   </View>
-                ))}
+                )) : <Text style={styles.sectionSubtitle}>Model gəliri hələ yoxdur.</Text>}
               </View>
             </Pressable>
 
@@ -201,8 +203,8 @@ export default function IncomeScreen() {
                 iconColor={colors.primary}
                 iconBackground={colors.primarySoft}
                 label="İş gəliri"
-                value="0 AZN"
-                trend="↗ 0%"
+                value={formatMoney(laborTotal)}
+                trend=""
                 trendColor={colors.success}
               />
               <IncomeMetricCard
@@ -211,8 +213,8 @@ export default function IncomeScreen() {
                 iconColor={colors.purple}
                 iconBackground={colors.purpleSoft}
                 label="Hissə gəliri"
-                value="0 AZN"
-                trend="↗ 0%"
+                value={formatMoney(partsTotal)}
+                trend=""
                 trendColor={colors.success}
               />
               <IncomeMetricCard
@@ -221,8 +223,8 @@ export default function IncomeScreen() {
                 iconColor={colors.danger}
                 iconBackground={colors.dangerSoft}
                 label="Endirimlər"
-                value="0 AZN"
-                trend="↘ 0%"
+                value={formatMoney(analytics?.discountTotal ?? 0)}
+                trend=""
                 trendColor={colors.danger}
               />
             </View>
@@ -244,22 +246,22 @@ export default function IncomeScreen() {
                 {expandedPanel === 'monthly' ? (
                   <ExpandedChart
                     title="Aylıq gəlir"
-                    value={formatMoney(monthSummary?.incomeTotal ?? 0)}
+                    value={formatMoney(analytics?.monthIncome ?? monthSummary?.incomeTotal ?? 0)}
                     subtitle="Bu ay üzrə gündəlik gəlir (AZN)"
                   >
-                    <LineChartPreview expanded />
+                    <LineChartPreview values={dailyChartValues} expanded />
                   </ExpandedChart>
                 ) : null}
                 {expandedPanel === 'yearly' ? (
                   <ExpandedChart
                     title="İllik gəlir"
-                    value={formatMoney(yearSummary?.incomeTotal ?? 0)}
+                    value={formatMoney(analytics?.yearIncome ?? yearSummary?.incomeTotal ?? 0)}
                     subtitle="Son 12 ay üzrə gəlir (AZN)"
                   >
-                    <BarChartPreview expanded />
+                    <BarChartPreview values={yearlyChartValues} expanded />
                   </ExpandedChart>
                 ) : null}
-                {expandedPanel === 'models' ? <ExpandedModels /> : null}
+                {expandedPanel === 'models' ? <ExpandedModels rows={modelRows} /> : null}
               </ScrollView>
             </Modal>
           </>
@@ -285,7 +287,7 @@ function IncomeMetricCard({
   iconBackground: string;
   label: string;
   value: string;
-  trend: string;
+  trend?: string;
   trendColor: string;
   wide?: boolean;
   compact?: boolean;
@@ -304,7 +306,7 @@ function IncomeMetricCard({
         <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.76} style={styles.metricValue}>
           {value}
         </Text>
-        <Text style={[styles.trend, { color: trendColor }]}>{trend}</Text>
+        {trend ? <Text style={[styles.trend, { color: trendColor }]}>{trend}</Text> : null}
       </View>
     </View>
   );
@@ -343,10 +345,11 @@ function ChartCard({
   );
 }
 
-function LineChartPreview({ expanded = false }: { expanded?: boolean }) {
+function LineChartPreview({ values, expanded = false }: { values: number[]; expanded?: boolean }) {
+  const chartValues = values.length > 0 ? values : [0];
   return (
     <View style={[styles.lineChart, expanded && styles.expandedChart]}>
-      {monthlyLine.map((height, index) => (
+      {chartValues.map((height, index) => (
         <View key={`${height}-${index}`} style={styles.lineColumn}>
           <View style={[styles.linePoint, { bottom: expanded ? height * 1.45 : height }]} />
           {index > 0 ? (
@@ -358,10 +361,11 @@ function LineChartPreview({ expanded = false }: { expanded?: boolean }) {
   );
 }
 
-function BarChartPreview({ expanded = false }: { expanded?: boolean }) {
+function BarChartPreview({ values, expanded = false }: { values: number[]; expanded?: boolean }) {
+  const chartValues = values.length > 0 ? values : [0];
   return (
     <View style={[styles.barChart, expanded && styles.expandedChart]}>
-      {yearlyBars.map((height, index) => (
+      {chartValues.map((height, index) => (
         <View key={`${height}-${index}`} style={styles.barColumn}>
           <View style={[styles.bar, { height: expanded ? height * 1.45 : height }]} />
         </View>
@@ -396,12 +400,12 @@ function ExpandedChart({
   );
 }
 
-function ExpandedModels() {
+function ExpandedModels({ rows }: { rows: Array<{ label: string; value: string; width: `${number}%` }> }) {
   return (
     <View style={styles.expandedContent}>
       <Text style={styles.expandedSubtitle}>Bu ay üzrə ən çox gəlir gətirən injector modelləri</Text>
       <View style={styles.expandedModelList}>
-        {modelRows.map((row, index) => (
+        {rows.length > 0 ? rows.map((row, index) => (
           <View key={row.label} style={styles.expandedModelRow}>
             <Text style={styles.expandedModelName}>{index + 1}. {row.label}</Text>
             <View style={styles.progressTrack}>
@@ -409,9 +413,9 @@ function ExpandedModels() {
             </View>
             <Text style={styles.expandedModelValue}>{row.value}</Text>
           </View>
-        ))}
+        )) : <Text style={styles.expandedNote}>Bu dövr üçün model gəliri tapılmadı.</Text>}
       </View>
-      <Text style={styles.expandedNote}>Model siyahısı hazırda vizual xülasədir. Real model gəliri ayrıca analitika RPC-si əlavə ediləndə buradan göstəriləcək.</Text>
+      <Text style={styles.expandedNote}>Model gəliri saxlanmış servis detalları əsasında hesablanır.</Text>
     </View>
   );
 }
@@ -430,6 +434,37 @@ function getExpandedTitle(panel: ExpandedIncomePanel) {
   }
 
   return 'Detal';
+}
+
+function normalizeChartValues(values: number[]) {
+  const maxValue = Math.max(...values, 0);
+
+  if (maxValue <= 0) {
+    return values.map(() => 0);
+  }
+
+  return values.map((value) => Math.max(8, Math.round((value / maxValue) * 86)));
+}
+
+function buildModelRows(analytics: IncomeAnalytics | undefined) {
+  const rows = analytics?.topModels ?? [];
+  const maxAmount = Math.max(...rows.map((row) => row.totalAmount), 0);
+
+  return rows.map((row) => {
+    const width = maxAmount > 0
+      ? Math.max(12, Math.round((row.totalAmount / maxAmount) * 100))
+      : 0;
+
+    return {
+      label: row.label,
+      value: formatMoney(row.totalAmount),
+      width: `${width}%` as `${number}%`,
+    };
+  });
+}
+
+function getCategoryTotal(analytics: IncomeAnalytics | undefined, itemType: 'labor' | 'part' | 'extra') {
+  return analytics?.categoryTotals.find((category) => category.itemType === itemType)?.totalAmount ?? 0;
 }
 
 const styles = StyleSheet.create({

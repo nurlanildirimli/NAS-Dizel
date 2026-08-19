@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { BarChart3, Car, MoreHorizontal, PlusCircle, Search } from 'lucide-react-native';
+import { BarChart3, Car, FileText, MoreHorizontal, PlusCircle, Search } from 'lucide-react-native';
 import { Platform } from 'react-native';
 
 import { colors, layout } from '../../src/theme';
@@ -54,6 +54,13 @@ export default function TabsLayout() {
         options={{
           title: 'Avtomobillər',
           tabBarIcon: ({ color, size }) => <Car color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="drafts"
+        options={{
+          title: 'Yaddaş',
+          tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
         }}
       />
       <Tabs.Screen

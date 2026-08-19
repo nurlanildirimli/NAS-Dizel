@@ -114,6 +114,32 @@ export const incomeSummaryRowSchema = z.object({
   injector_count: numericValue,
 });
 
+export const incomeAnalyticsRowSchema = z.object({
+  period_key: z.enum(['today', 'week', 'month', 'year']),
+  daily_income: z.array(z.object({
+    day: z.string(),
+    amount: numericValue,
+  })),
+  monthly_income: z.array(z.object({
+    month: z.string(),
+    amount: numericValue,
+  })),
+  top_models: z.array(z.object({
+    label: z.string(),
+    service_count: numericValue,
+    total_amount: numericValue,
+  })),
+  category_totals: z.array(z.object({
+    item_type: z.enum(['labor', 'part', 'extra']),
+    total_amount: numericValue,
+    quantity: numericValue,
+  })),
+  discount_total: numericValue,
+  today_income: numericValue,
+  month_income: numericValue,
+  year_income: numericValue,
+});
+
 export const paymentMutationResultSchema = z.object({
   service_id: z.string().uuid(),
   payment_id: z.string().uuid().optional(),
@@ -129,3 +155,4 @@ export const softDeleteResultSchema = z.object({
 export type ServiceDetailRow = z.infer<typeof serviceDetailRowSchema>;
 export type PaymentCardRow = z.infer<typeof paymentCardRowSchema>;
 export type IncomeSummaryRow = z.infer<typeof incomeSummaryRowSchema>;
+export type IncomeAnalyticsRow = z.infer<typeof incomeAnalyticsRowSchema>;

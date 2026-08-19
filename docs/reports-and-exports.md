@@ -19,16 +19,24 @@ Most frequent vehicles, service count by brand, top spenders, vehicles with
 outstanding debt, vehicles flagged as problem customers.
 
 ### İnyektor hesabatı
-Most frequent injector company, most frequent injector code, service count by
-model, average service amount by model.
+Most frequent injector company/code, service count by model, average service
+amount, and line-item revenue by model.
 
 ### Hissə hesabatı
-Most-replaced part; count of Nozzle replacements broken down by variant
-(Çin / Original / İşlənmiş); revenue from parts.
+Top detailed service rows from `service_line_items`: labor, parts, extras,
+quantity, option/variant, and revenue. This reflects the AI-generated service
+details saved during `Yeni`.
 
 ### Qiymət dəyişiklikləri hesabatı
 Which services had a price override, what the model price was, what was actually
 charged, and the difference — sourced from `service_line_items.price_changed`.
+
+## Gəlir Analytics
+
+`Gəlir` uses `get_income_summary(period_key)` for headline counts and
+`get_income_analytics(period_key)` for charts, top injector models, labor income,
+parts income, and discounts. Chart/model/category data comes from
+`service_line_items` and excludes soft-deleted services/payments.
 
 ### Borclar hesabatı
 Vehicles with outstanding debt: plate, phone, remaining amount, last service date.

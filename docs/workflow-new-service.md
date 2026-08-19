@@ -1,6 +1,6 @@
 # New Service Workflow
 
-Four steps: **Avtomobil → İnyektorlar → İş və ödəniş → Təsdiq**.
+Three steps: **Avtomobil → Qeydlər → Təsdiq**.
 Exact screen copy for each step is in `docs/ui-copy.md`; this doc covers the
 logic and data rules.
 
@@ -13,21 +13,36 @@ Optional: Problemli müştəri (toggle), Problem səbəbi.
 show its current snapshot and offer **Mövcud avtomobili seç** or
 **Yeni qeyd yarat**. If not found, prompt to add as new.
 
-## Step 2 — İnyektorlar
+## Step 2 — Qeydlər
 
-Injector count: 1–8, default 4. Injector company: Bosch / Delphi / Denso /
-Siemens / Continental / Digər. General fields (company, code, serial/note) apply
-to the whole visit; per-injector fields (initial/final test, status, problem,
-work done, parts replaced, note) are captured per physical injector, generating
-one `service_injectors` row per unit.
+The mechanic writes a free-form diesel injector service note or records one or
+more local voice notes. When the mechanic asks for professional text, the app
+first sends untranscribed local audio to `ai-transcribe-service-note`, lets the
+mechanic review/edit the transcript, and then sends the confirmed raw note to
+`ai-professional-service-note`. The professional note response returns:
+professional service text, detected price lines, total price, missing
+information, and basic injector hints when present.
 
-If `injector_company + injector_code` matches an existing `injector_models` row,
-surface the model match and note that catalog prices will apply. If not, let the
-user either add it as a new model or continue with manual pricing.
+`Yadda saxla` stores unfinished work in `service_drafts` and local storage.
+Supabase stores only text, pricing, and an opaque local recording key. Audio
+files and recording metadata remain on the phone and are deleted after the final
+service is saved or the draft is deleted.
 
-## Step 3 — İş və ödəniş
+AI Edge Functions log metadata-only usage rows to `ai_usage_logs` for internal
+cost/debug visibility. Logs include feature, model, status, token/audio counts,
+retry count, estimated cost, and short error summaries only; they must not store
+raw mechanic notes, transcripts, professional service text, audio, phone, or
+license plate. Cost estimates use Supabase secrets:
+`OPENAI_TEXT_INPUT_USD_PER_1M`, `OPENAI_TEXT_OUTPUT_USD_PER_1M`, and
+`OPENAI_TRANSCRIBE_USD_PER_MINUTE`.
 
-### Apply targets
+## Pricing
+
+The simplified text-service flow creates one general line item named
+`Servis yekunu` from the confirmed `Qiymət` value. This keeps reports, income,
+payments, and service detail compatible with the existing totals logic.
+
+Legacy structured line items still support apply targets:
 
 Labor and parts are **never** simple checkboxes. Every line item has an
 `apply_target`:
@@ -78,11 +93,12 @@ paid_amount == 0                    → Ödənilməyib   (unpaid)
 - If new mileage < vehicle's last known mileage, prompt for confirmation before
   continuing (see warning copy in `docs/ui-copy.md`).
 
-## Step 4 — Təsdiq
+## Step 3 — Təsdiq
 
-Read-only summary of everything captured in steps 1–3 (see the full example
-layout in `docs/ui-copy.md`). This is the last confirmation point before writing
-to the database — nothing is persisted until **Təsdiqlə və saxla** is tapped.
+Editable summary of vehicle data, professional service text, raw mechanic note,
+AI warnings, price, discount, paid amount, and problem-customer status. This is
+the last confirmation point before writing to the database — nothing is persisted
+as a final service until **Təsdiqlə və saxla** is tapped.
 
 ## Save Logic (on "Təsdiqlə və saxla")
 
@@ -93,7 +109,9 @@ Supabase client calls are not an acceptable substitute for this workflow.
 1. Normalize license plate.
 2. Find or create the vehicle.
 3. Update vehicle: brand, phone, last_mileage, is_problem_customer, problem_reason.
-4. Find or create the injector model (company + code).
+4. Find or create the injector model (company + code). The text-service flow uses
+   AI-detected values when present, otherwise fallback values: `Unknown` and
+   `AI-NOTE`.
 5. Create the `service_records` row, storing the phone/problem-customer snapshot
    as of this visit.
 6. Create one `service_injectors` row per unit (matching `injector_count`).

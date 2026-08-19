@@ -3,16 +3,19 @@ import { z } from 'zod';
 import { supabase } from '../lib/supabase';
 import {
   incomeSummaryRowSchema,
+  incomeAnalyticsRowSchema,
   paymentCardRowSchema,
   paymentMutationResultSchema,
   serviceDetailRowSchema,
   softDeleteResultSchema,
   type IncomeSummaryRow,
+  type IncomeAnalyticsRow,
   type PaymentCardRow,
   type ServiceDetailRow,
 } from '../schemas/services';
 import {
   type IncomePeriod,
+  type IncomeAnalytics,
   type IncomeSummary,
   type PaymentCardItem,
   type PaymentFilter,
@@ -126,6 +129,34 @@ function mapIncomeSummary(row: IncomeSummaryRow): IncomeSummary {
   };
 }
 
+function mapIncomeAnalytics(row: IncomeAnalyticsRow): IncomeAnalytics {
+  return {
+    periodKey: row.period_key,
+    dailyIncome: row.daily_income.map((point) => ({
+      label: point.day,
+      amount: point.amount,
+    })),
+    monthlyIncome: row.monthly_income.map((point) => ({
+      label: point.month,
+      amount: point.amount,
+    })),
+    topModels: row.top_models.map((model) => ({
+      label: model.label,
+      serviceCount: model.service_count,
+      totalAmount: model.total_amount,
+    })),
+    categoryTotals: row.category_totals.map((category) => ({
+      itemType: category.item_type,
+      totalAmount: category.total_amount,
+      quantity: category.quantity,
+    })),
+    discountTotal: row.discount_total,
+    todayIncome: row.today_income,
+    monthIncome: row.month_income,
+    yearIncome: row.year_income,
+  };
+}
+
 export async function getServiceDetail(serviceId: string): Promise<ServiceDetail | null> {
   const { data, error } = await supabase.rpc('get_service_detail', {
     service_uuid: serviceId,
@@ -161,6 +192,18 @@ export async function getIncomeSummary(periodKey: IncomePeriod = 'month'): Promi
   }
 
   return mapIncomeSummary(incomeSummaryRowSchema.parse(data));
+}
+
+export async function getIncomeAnalytics(periodKey: IncomePeriod = 'month'): Promise<IncomeAnalytics> {
+  const { data, error } = await supabase.rpc('get_income_analytics', {
+    period_key: periodKey,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return mapIncomeAnalytics(incomeAnalyticsRowSchema.parse(data));
 }
 
 export async function recordServicePayment(params: {

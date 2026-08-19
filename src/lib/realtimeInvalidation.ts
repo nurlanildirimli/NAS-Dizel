@@ -9,6 +9,7 @@ type WatchedTable =
   | 'service_injectors'
   | 'service_line_items'
   | 'payments'
+  | 'service_drafts'
   | 'injector_models'
   | 'injector_model_prices'
   | 'price_items'
@@ -23,6 +24,7 @@ const watchedTables: WatchedTable[] = [
   'service_injectors',
   'service_line_items',
   'payments',
+  'service_drafts',
   'injector_models',
   'injector_model_prices',
   'price_items',
@@ -38,6 +40,7 @@ const tableQueryKeys: Record<WatchedTable, string[]> = {
   service_injectors: ['vehicles', 'services', 'income', 'reports'],
   service_line_items: ['vehicles', 'services', 'income', 'reports'],
   payments: ['vehicles', 'services', 'payments', 'income', 'reports'],
+  service_drafts: ['service-drafts'],
   injector_models: ['catalog', 'reports'],
   injector_model_prices: ['catalog', 'reports'],
   price_items: ['catalog', 'reports'],
